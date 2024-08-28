@@ -37,6 +37,8 @@ const byte sensorEntrada = 2;
 const byte sensorEntrada2 = 4;
 const byte sensorSaida = 0; // usar 14 no real e 0 no simulador
 
+const byte buzzer = 18;
+
 const byte vaga1 = 27;
 const byte vaga2 = 26;
 const byte vaga3 = 25;
@@ -53,7 +55,6 @@ const byte ledBranco3 = 25;
 const byte ledBranco4 = 27;
 
 volatile int vagasDisponiveis = 4;
-volatile boolean alarmeAcionado = false;
 
 // vagas disponiveis
 volatile boolean sensor1 = true;
@@ -212,20 +213,13 @@ void alarmar(){
   myServo3.write(90);
     
   Serial.print("Interrupção acionada");
-  tone(18, 262, 5000); // Toca um tom de 262Hz por 5 segundos 
+  digitalWrite(buzzer, HIGH); // Toca um tom de 262Hz por 5 segundos 
 }
 
 void isrAlarme() {
   if ((millis() - timestamp_ultimo_acionamento) >= TEMPO_DEBOUNCE ){
     timestamp_ultimo_acionamento = millis();
-    alarmeAcionado = true;
-  }
-}
-
-void timerCallback(TimerHandle_t xTimer) {
-  if(alarmeAcionado){
     alarmar();
-    alarmeAcionado = !alarmeAcionado;
   }
 }
 
@@ -290,9 +284,6 @@ void setup() {
 
   SMF1 = xSemaphoreCreateBinary();
   xSemaphoreGive(SMF1);
-
-  temporizador1 = xTimerCreate("temporizador1", pdMS_TO_TICKS(2000), pdTRUE, (void*)0, timerCallback);
-  xTimerStart(temporizador1, 0);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -300,7 +291,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   for (int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
-
   
   char *token = strtok((char*)payload, "_");
   if (token != NULL) vagasDisponiveis = atoi(token);
